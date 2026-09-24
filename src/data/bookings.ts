@@ -1,0 +1,57 @@
+import type { Booking } from '../types'
+
+// PRODUCTION SAFEGUARD: Frontend-only demo fixtures. Not imported by the API.
+// Never written to PostgreSQL. Live bookings come from GET /api/bookings.
+export const seedBookings: Booking[] = [
+  {
+    id: 'bk-1001',
+    propertyId: '1',
+    tenantId: 'usr-ananya',
+    tenantName: 'Ananya Sharma',
+    ownerId: 'own-rajesh',
+    ownerName: 'Rajesh Patel',
+    date: '2026-09-25',
+    time: '11:00 AM',
+    status: 'Confirmed',
+    note: 'Weekday morning viewing with family.',
+    createdAt: '2026-09-14',
+  },
+  {
+    id: 'bk-1002',
+    propertyId: '6',
+    tenantId: 'usr-ananya',
+    tenantName: 'Ananya Sharma',
+    ownerId: 'own-pooja',
+    ownerName: 'Pooja Shah',
+    date: '2026-09-28',
+    time: '5:30 PM',
+    status: 'Requested',
+    note: 'Prefer evening slot after work.',
+    createdAt: '2026-09-18',
+  },
+  {
+    id: 'bk-1003',
+    propertyId: '2',
+    tenantId: 'usr-kunal',
+    tenantName: 'Kunal Joshi',
+    ownerId: 'own-priya',
+    ownerName: 'Priya Shah',
+    date: '2026-09-10',
+    time: '4:00 PM',
+    status: 'Completed',
+    createdAt: '2026-09-03',
+  },
+  {
+    id: 'bk-1004',
+    propertyId: '4',
+    tenantId: 'usr-devang',
+    tenantName: 'Devang Trivedi',
+    ownerId: 'own-neha',
+    ownerName: 'Neha Desai',
+    date: '2026-09-12',
+    time: '10:00 AM',
+    status: 'Cancelled',
+    note: 'Tenant found another place.',
+    createdAt: '2026-09-05',
+  },
+]

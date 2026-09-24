@@ -1,0 +1,345 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  tenant
+  buyer
+  owner
+  admin
+}
+
+enum ListingFor {
+  rent
+  sale
+  both
+}
+
+enum PropertyStatus {
+  draft
+  active
+}
+
+enum BookingStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+  COMPLETED
+}
+
+enum AgreementStatus {
+  DRAFT
+  PENDING
+  AWAITING_SIGNATURES
+  ACTIVE
+  COMPLETED
+  REJECTED
+  INFORMATION_REQUIRED
+  DOCUMENTS_REQUIRED
+  AWAITING_TENANT_SIGNATURE
+  AWAITING_OWNER_SIGNATURE
+  READY_FOR_LAWYER_REVIEW
+  SENT_TO_LAWYER
+  UNDER_LEGAL_REVIEW
+  AWAITING_FINAL_AGREEMENT
+  FINAL_AGREEMENT_UPLOADED
+}
+
+enum DocumentProvider {
+  TENANT
+  OWNER
+}
+
+enum DocumentVerificationStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+enum RiskLevel {
+  low
+  medium
+  high
+}
+
+model User {
+  id                String   @id @default(cuid())
+  name              String
+  email             String   @unique
+  password          String
+  role              Role     @default(tenant)
+  phone             String?
+  preferredLocation String?
+  budget            Int?
+  preferredBedrooms Int?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  properties        Property[]
+  renterPreferences RenterPreferences?
+  buyerPreferences  BuyerPreferences?
+  favorites         Favorite[]
+  bookingsAsTenant  Booking[]
+  agreementsAsTenant Agreement[] @relation("AgreementsAsTenant")
+  agreementsAsOwner  Agreement[] @relation("AgreementsAsOwner")
+  passwordResetTokens PasswordResetToken[]
+  compatibilityScores CompatibilityScore[]
+
+  @@index([role])
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  tokenHash String
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([tokenHash])
+}
+
+model Property {
+  id              String         @id @default(cuid())
+  title           String
+  type            String
+  price           Int
+  sellingPrice    Int?
+  listingFor      ListingFor     @default(rent)
+  location        String
+  address         String
+  city            String
+  state           String?
+  pincode         String?
+  bedrooms        Int
+  bathrooms       Int
+  size            Int
+  commute         String?
+  matchScore      Int?
+  healthScore     Int?
+  riskLevel       RiskLevel      @default(low)
+  amenities       String[]
+  description     String
+  securityDeposit Int
+  maintenance     Int
+  otherCharges    Int?
+  available       Boolean        @default(true)
+  availableFrom   DateTime?
+  views           Int            @default(0)
+  furnishing      String
+  status          PropertyStatus @default(draft)
+  floor           String?
+  totalFloors     String?
+  parking         String?
+  latitude        Float?
+  longitude       Float?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  ownerId String
+  owner   User   @relation(fields: [ownerId], references: [id], onDelete: Restrict)
+
+  images PropertyImage[]
+  favorites Favorite[]
+  bookings Booking[]
+  agreements Agreement[]
+  compatibilityScores CompatibilityScore[]
+
+  @@index([ownerId])
+  @@index([city])
+  @@index([status])
+  @@index([listingFor])
+  @@index([price])
+}
+
+model CompatibilityScore {
+  id           String   @id @default(cuid())
+  score        Int
+  factors      Json
+  modelVersion String   @default("deterministic-v1")
+  computedAt   DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  propertyId String
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  tenantId String
+  tenant   User     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([propertyId, tenantId])
+  @@index([tenantId])
+  @@index([propertyId])
+}
+
+model Booking {
+  id        String        @id @default(cuid())
+  date      DateTime
+  time      String
+  note      String?
+  status    BookingStatus @default(PENDING)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  propertyId String
+  property   Property     @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  tenantId String
+  tenant   User           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  agreements Agreement[]
+
+  @@index([propertyId])
+  @@index([tenantId])
+  @@index([status])
+}
+
+model Agreement {
+  id        String         @id @default(cuid())
+  status    AgreementStatus @default(DRAFT)
+
+  startDate DateTime
+  endDate   DateTime
+
+  monthlyRent           Int
+  securityDeposit       Int
+  maintenanceAmount     Int?
+  noticePeriodDays      Int
+  paymentDueDay         Int
+  maintenanceResponsibility String
+  otherTerms            String?
+
+  tenantAddress String?
+  tenantDocId   String?
+  tenantPhone   String?
+  tenantEmail   String?
+  ownerAddress  String?
+  ownerDocId    String?
+  ownerPhone    String?
+  ownerEmail    String?
+
+  tenantPhoto     String?
+  tenantSignature String?
+  tenantSignedAt  DateTime?
+  ownerPhoto      String?
+  ownerSignature  String?
+  ownerSignedAt   DateTime?
+
+  requiredTenantDocuments String[] @default([])
+  requiredOwnerDocuments  String[] @default([])
+
+  sentToLawyerAt            DateTime?
+  underReviewAt             DateTime?
+  lawyerNotes               String?
+  finalAgreementUploadedAt  DateTime?
+  finalAgreementFileName    String?
+  finalAgreementFileData    String?
+  finalAgreementFileMimeType String?
+  finalAgreementUploadedById String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  propertyId String
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  tenantId String
+  tenant   User     @relation("AgreementsAsTenant", fields: [tenantId], references: [id], onDelete: Cascade)
+
+  ownerId String
+  owner   User     @relation("AgreementsAsOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+
+  bookingId String?
+  booking   Booking? @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+
+  documents AgreementDocument[]
+
+  @@index([propertyId])
+  @@index([tenantId])
+  @@index([ownerId])
+  @@index([status])
+  @@index([bookingId])
+}
+
+model AgreementDocument {
+  id           String   @id @default(cuid())
+  documentType String
+  providedBy   DocumentProvider
+  fileName     String
+  fileData     String
+  fileMimeType String
+  uploadedAt   DateTime @default(now())
+  verificationStatus DocumentVerificationStatus @default(PENDING)
+  verifiedAt   DateTime?
+  verificationNotes String?
+
+  agreementId String
+  agreement   Agreement @relation(fields: [agreementId], references: [id], onDelete: Cascade)
+
+  @@index([agreementId])
+  @@index([providedBy])
+  @@index([documentType])
+}
+
+model Favorite {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  propertyId String
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, propertyId])
+  @@index([userId])
+  @@index([propertyId])
+}
+
+model PropertyImage {
+  id           String   @id @default(cuid())
+  imageUrl     String
+  displayOrder Int
+  createdAt    DateTime @default(now())
+
+  propertyId String
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@index([propertyId, displayOrder])
+}
+
+model RenterPreferences {
+  id           String   @id @default(cuid())
+  budget       String
+  propertyType String
+  occupants    String
+  pets         String
+  furnishing   String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model BuyerPreferences {
+  id           String   @id @default(cuid())
+  budget       String
+  propertyType String
+  purpose      String
+  furnishing   String
+  priority     String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
