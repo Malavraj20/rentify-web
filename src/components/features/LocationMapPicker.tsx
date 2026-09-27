@@ -124,7 +124,7 @@ export function LocationMapPicker({
         </p>
       )}
 
-      <div className="mt-3 overflow-hidden rounded-xl border border-rentify-grayLight">
+      <div className="relative isolate z-0 mt-3 overflow-hidden rounded-xl border border-rentify-grayLight">
         <MapContainer
           center={center}
           zoom={DEFAULT_ZOOM}
